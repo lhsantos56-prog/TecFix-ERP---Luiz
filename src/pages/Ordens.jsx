@@ -128,7 +128,9 @@ const OBS_SEPARATOR = '\n\n— Observação';
 /**
  * Página de Gestão de Ordens de Serviço
  */
-function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtualizarStatus, onAtualizarAprovacao }) {
+function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtualizarStatus, onAtualizarAprovacao,
+  canCreateOS = true, canEditOS = true, canChangeConserto = true, canChangeAprovacao = true,
+  isAdmin = false }) {
   // Estados do modal de criação
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM);
@@ -293,7 +295,8 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
             {loading ? 'Carregando...' : `${filteredOrdens.length} de ${ordens.length} OS exibida${filteredOrdens.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <button id="btn-nova-os" className="btn btn-primary" onClick={() => setIsCreateOpen(true)}>
+        <button id="btn-nova-os" className="btn btn-primary" onClick={() => setIsCreateOpen(true)}
+          style={{ display: canCreateOS ? 'inline-flex' : 'none' }}>
           <Plus size={16} />Nova OS
         </button>
       </div>
@@ -421,60 +424,89 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {/* Select Status do Conserto */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Conserto</span>
-                        {updatingId === ordem.id ? (
-                          <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-accent)' }} />
-                        ) : (
-                          <select
-                            id={`status-select-${ordem.id}`}
-                            className="status-select"
-                            value={ordem.status}
-                            onChange={e => handleStatusChange(ordem.id, e.target.value)}
-                            aria-label={`Alterar status do conserto da OS de ${ordem.clientes?.nome}`}
-                            disabled={updatingId !== null || updatingAprovacaoId !== null}
-                          >
-                            {STATUS_CONSERTO_OPTIONS.map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
+                      {canChangeConserto && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Conserto</span>
+                          {updatingId === ordem.id ? (
+                            <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-accent)' }} />
+                          ) : (
+                            <select
+                              id={`status-select-${ordem.id}`}
+                              className="status-select"
+                              value={ordem.status}
+                              onChange={e => handleStatusChange(ordem.id, e.target.value)}
+                              aria-label={`Alterar status do conserto da OS de ${ordem.clientes?.nome}`}
+                              disabled={updatingId !== null || updatingAprovacaoId !== null}
+                            >
+                              {STATUS_CONSERTO_OPTIONS.map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      )}
 
                       {/* Select Status Aprovação */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Aprovação</span>
-                        {updatingAprovacaoId === ordem.id ? (
-                          <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-aguardando)' }} />
-                        ) : (
-                          <select
-                            id={`aprovacao-select-${ordem.id}`}
-                            className="status-select"
-                            value={ordem.status_aprovacao || 'Aguardando'}
-                            onChange={e => handleAprovacaoChange(ordem.id, e.target.value)}
-                            aria-label={`Alterar status de aprovação da OS de ${ordem.clientes?.nome}`}
-                            disabled={updatingId !== null || updatingAprovacaoId !== null}
-                          >
-                            {STATUS_APROVACAO_OPTIONS.map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
+                      {canChangeAprovacao && (() => {
+                        // Bloqueia para não-admins quando conserto está finalizado/cancelado
+                        // ou quando aprovação já foi definida como Reprovado
+                        const aprovacaoLocked = !isAdmin && (
+                          ordem.status === 'Finalizada' ||
+                          ordem.status === 'Cancelada' ||
+                          ordem.status_aprovacao === 'Reprovado'
+                        );
+
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Aprovação</span>
+                            {updatingAprovacaoId === ordem.id ? (
+                              <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-aguardando)' }} />
+                            ) : aprovacaoLocked ? (
+                              /* Bloqueado — exibe badge + ícone de cadeado */
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                                title={`Aprovação bloqueada — Status do conserto: ${ordem.status}`}
+                              >
+                                <AprovacaoBadge status={ordem.status_aprovacao} />
+                                <Lock size={11} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                              </div>
+                            ) : (
+                              <select
+                                id={`aprovacao-select-${ordem.id}`}
+                                className="status-select"
+                                value={ordem.status_aprovacao || 'Aguardando'}
+                                onChange={e => handleAprovacaoChange(ordem.id, e.target.value)}
+                                aria-label={`Alterar status de aprovação da OS de ${ordem.clientes?.nome}`}
+                                disabled={updatingId !== null || updatingAprovacaoId !== null}
+                              >
+                                {STATUS_APROVACAO_OPTIONS.map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Exibe badge de conserto somente-leitura se não pode alterar */}
+                      {!canChangeConserto && <StatusBadge status={ordem.status} />}
+                      {!canChangeAprovacao && <AprovacaoBadge status={ordem.status_aprovacao} />}
                     </div>
 
-                    {/* Botão Editar */}
-                    <button
-                      id={`btn-editar-os-${ordem.id}`}
-                      className="btn btn-secondary btn-icon"
-                      onClick={() => openEdit(ordem)}
-                      title="Editar OS"
-                      aria-label={`Editar OS de ${ordem.clientes?.nome}`}
-                      disabled={updatingId !== null || updatingAprovacaoId !== null}
-                      style={{ marginTop: '6px' }}
-                    >
-                      <Pencil size={14} />
-                    </button>
+                    {/* Botão Editar — somente quem pode editar OS */}
+                    {canEditOS && (
+                      <button
+                        id={`btn-editar-os-${ordem.id}`}
+                        className="btn btn-secondary btn-icon"
+                        onClick={() => openEdit(ordem)}
+                        title="Editar OS"
+                        aria-label={`Editar OS de ${ordem.clientes?.nome}`}
+                        disabled={updatingId !== null || updatingAprovacaoId !== null}
+                        style={{ marginTop: '6px' }}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

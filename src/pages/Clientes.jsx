@@ -32,7 +32,7 @@ const INITIAL_FORM = { nome: '', email: '', telefone: '' };
 /**
  * Página de Gestão de Clientes
  */
-function Clientes({ clientes, loading, error, onCriar }) {
+function Clientes({ clientes, loading, error, onCriar, canManage = true }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [formErrors, setFormErrors] = useState({});
@@ -99,14 +99,11 @@ function Clientes({ clientes, loading, error, onCriar }) {
             {loading ? 'Carregando...' : `${clientes.length} cliente${clientes.length !== 1 ? 's' : ''} cadastrado${clientes.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <button
-          id="btn-novo-cliente"
-          className="btn btn-primary"
-          onClick={() => setIsModalOpen(true)}
-        >
-          <UserPlus size={16} />
-          Novo Cliente
-        </button>
+        {canManage && (
+          <button id="btn-novo-cliente" className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+            <UserPlus size={16} />Novo Cliente
+          </button>
+        )}
       </div>
 
       {/* Erro geral */}

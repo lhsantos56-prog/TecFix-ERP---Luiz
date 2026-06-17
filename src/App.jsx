@@ -1,144 +1,118 @@
 import React, { useState, useCallback } from 'react';
 import './App.css';
+import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './hooks/useAuth';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/ToastContainer';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import Ordens from './pages/Ordens';
+import Usuarios from './pages/Usuarios';
+import Login from './pages/Login';
 import { useClientes } from './hooks/useClientes';
 import { useOrdens } from './hooks/useOrdens';
 import { useToast } from './hooks/useToast';
 
-function App() {
+/**
+ * Conteúdo principal — só renderizado quando autenticado
+ */
+function AppContent() {
+  const { role, nomeUsuario, ativo, signOut, loading: authLoading } = useAuth();
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { toasts, toast, removeToast } = useToast();
-  const {
-    clientes,
-    loading: clientesLoading,
-    error: clientesError,
-    fetchClientes,
-    criarCliente,
-  } = useClientes();
+  const { clientes, loading: clientesLoading, error: clientesError, fetchClientes, criarCliente } = useClientes();
+  const { ordens, loading: ordensLoading, error: ordensError, fetchOrdens, criarOrdem, atualizarOrdem, atualizarStatus, atualizarAprovacao } = useOrdens();
 
-  const {
-    ordens,
-    loading: ordensLoading,
-    error: ordensError,
-    fetchOrdens,
-    criarOrdem,
-    atualizarOrdem,
-    atualizarStatus,
-    atualizarAprovacao,
-  } = useOrdens();
+  // Permissões por role
+  const canManageClientes = role === 'atendente' || role === 'administrador';
+  const canCreateOS = role === 'atendente' || role === 'administrador';
+  const canEditOS = role === 'tecnico' || role === 'administrador';
+  const canChangeConserto = role === 'tecnico' || role === 'administrador';
+  const canChangeAprovacao = role === 'atendente' || role === 'administrador';
+  const isAdmin = role === 'administrador';
 
-  // Refresh de dados da página atual
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       if (activePage === 'clientes') await fetchClientes();
       else if (activePage === 'ordens') await fetchOrdens();
-      else {
-        await Promise.all([fetchClientes(), fetchOrdens()]);
-      }
+      else await Promise.all([fetchClientes(), fetchOrdens()]);
       toast.info('Dados atualizados!');
-    } catch {
-      toast.error('Erro ao atualizar dados.');
-    } finally {
-      setIsRefreshing(false);
-    }
+    } catch { toast.error('Erro ao atualizar dados.'); }
+    finally { setIsRefreshing(false); }
   }, [activePage, fetchClientes, fetchOrdens, toast]);
 
-  // Criar cliente com feedback
   const handleCriarCliente = useCallback(async (data) => {
-    try {
-      await criarCliente(data);
-      toast.success('Cliente cadastrado com sucesso!');
-    } catch (err) {
-      toast.error(err.message || 'Erro ao cadastrar cliente.');
-      throw err;
-    }
+    try { await criarCliente(data); toast.success('Cliente cadastrado com sucesso!'); }
+    catch (err) { toast.error(err.message || 'Erro ao cadastrar cliente.'); throw err; }
   }, [criarCliente, toast]);
 
-  // Criar OS com feedback
   const handleCriarOrdem = useCallback(async (data) => {
-    try {
-      await criarOrdem(data);
-      toast.success('Ordem de Serviço criada com sucesso!');
-    } catch (err) {
-      toast.error(err.message || 'Erro ao criar OS.');
-      throw err;
-    }
+    try { await criarOrdem(data); toast.success('Ordem de Serviço criada com sucesso!'); }
+    catch (err) { toast.error(err.message || 'Erro ao criar OS.'); throw err; }
   }, [criarOrdem, toast]);
 
-  // Atualizar OS completa com feedback
   const handleAtualizarOrdem = useCallback(async (id, campos) => {
-    try {
-      await atualizarOrdem(id, campos);
-      toast.success('Ordem de Serviço atualizada com sucesso!');
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar OS.');
-      throw err;
-    }
+    try { await atualizarOrdem(id, campos); toast.success('OS atualizada com sucesso!'); }
+    catch (err) { toast.error(err.message || 'Erro ao atualizar OS.'); throw err; }
   }, [atualizarOrdem, toast]);
 
-  // Atualizar status com feedback
   const handleAtualizarStatus = useCallback(async (id, novoStatus) => {
-    try {
-      await atualizarStatus(id, novoStatus);
-      toast.success(`Status atualizado para "${novoStatus}".`);
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar status.');
-      throw err;
-    }
+    try { await atualizarStatus(id, novoStatus); toast.success(`Status atualizado para "${novoStatus}".`); }
+    catch (err) { toast.error(err.message || 'Erro ao atualizar status.'); throw err; }
   }, [atualizarStatus, toast]);
 
-  // Atualizar status de aprovação com feedback
   const handleAtualizarAprovacao = useCallback(async (id, novoStatus) => {
-    try {
-      await atualizarAprovacao(id, novoStatus);
-      toast.success(`Aprovação atualizada para "${novoStatus}".`);
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar aprovação.');
-      throw err;
-    }
+    try { await atualizarAprovacao(id, novoStatus); toast.success(`Aprovação atualizada para "${novoStatus}".`); }
+    catch (err) { toast.error(err.message || 'Erro ao atualizar aprovação.'); throw err; }
   }, [atualizarAprovacao, toast]);
 
-  // Renderiza a página ativa
+  // Usuário inativo — bloqueia acesso
+  if (!authLoading && ativo === false) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--color-bg-primary)', flexDirection: 'column', gap: '16px', padding: '20px',
+      }}>
+        <div style={{ fontSize: '3rem' }}>🔒</div>
+        <h2 style={{ color: 'var(--color-cancelada)', margin: 0 }}>Acesso desativado</h2>
+        <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+          Sua conta foi desativada. Fale com o Administrador.
+        </p>
+        <button className="btn btn-secondary" onClick={signOut}>Sair</button>
+      </div>
+    );
+  }
+
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
-        return (
-          <Dashboard
-            ordens={ordens}
-            loading={ordensLoading}
-          />
-        );
+        return <Dashboard ordens={ordens} loading={ordensLoading} />;
       case 'clientes':
         return (
           <Clientes
-            clientes={clientes}
-            loading={clientesLoading}
-            error={clientesError}
-            onCriar={handleCriarCliente}
+            clientes={clientes} loading={clientesLoading} error={clientesError}
+            onCriar={handleCriarCliente} canManage={canManageClientes}
           />
         );
       case 'ordens':
         return (
           <Ordens
-            ordens={ordens}
-            clientes={clientes}
-            loading={ordensLoading}
-            error={ordensError}
-            onCriar={handleCriarOrdem}
-            onAtualizar={handleAtualizarOrdem}
-            onAtualizarStatus={handleAtualizarStatus}
-            onAtualizarAprovacao={handleAtualizarAprovacao}
+            ordens={ordens} clientes={clientes}
+            loading={ordensLoading} error={ordensError}
+            onCriar={handleCriarOrdem} onAtualizar={handleAtualizarOrdem}
+            onAtualizarStatus={handleAtualizarStatus} onAtualizarAprovacao={handleAtualizarAprovacao}
+            canCreateOS={canCreateOS} canEditOS={canEditOS}
+            canChangeConserto={canChangeConserto} canChangeAprovacao={canChangeAprovacao}
+            isAdmin={isAdmin}
           />
         );
+      case 'usuarios':
+        return isAdmin ? <Usuarios /> : null;
       default:
         return null;
     }
@@ -146,31 +120,60 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar */}
       <Sidebar
         activePage={activePage}
         onNavigate={setActivePage}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isAdmin={isAdmin}
+        nomeUsuario={nomeUsuario}
+        role={role}
+        onSignOut={signOut}
       />
-
-      {/* Conteúdo principal */}
       <div className="main-content">
         <Header
           activePage={activePage}
           onMenuToggle={() => setSidebarOpen(prev => !prev)}
-          onRefresh={handleRefresh}
+          onRefresh={activePage !== 'usuarios' ? handleRefresh : undefined}
           isRefreshing={isRefreshing}
+          nomeUsuario={nomeUsuario}
+          role={role}
         />
-
         <main className="page-wrapper" id="main-content" role="main">
           {renderPage()}
         </main>
       </div>
-
-      {/* Notificações Toast */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
+  );
+}
+
+/**
+ * Componente raiz — gerencia auth gate
+ */
+function AppGate() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--color-bg-primary)', flexDirection: 'column', gap: '16px',
+      }}>
+        <div className="spinner spinner-lg" />
+        <span style={{ color: 'var(--color-text-muted)' }}>Verificando sessão...</span>
+      </div>
+    );
+  }
+
+  return user ? <AppContent /> : <Login />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppGate />
+    </AuthProvider>
   );
 }
 
