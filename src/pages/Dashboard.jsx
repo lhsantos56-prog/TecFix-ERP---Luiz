@@ -39,7 +39,7 @@ function StatCard({ icon: Icon, label, value, colorClass, note }) {
 /**
  * Dashboard — Painel de controle principal
  */
-function Dashboard({ ordens, loading }) {
+function Dashboard({ ordens, loading, isAdmin }) {
   const stats = useMemo(() => {
     const total = ordens.length;
     const pendentes = ordens.filter(o => o.status === 'Pendente').length;
@@ -119,13 +119,15 @@ function Dashboard({ ordens, loading }) {
           colorClass="green"
           note="OS concluídas"
         />
-        <StatCard
-          icon={DollarSign}
-          label="Faturamento Total"
-          value={formatCurrency(stats.faturamento)}
-          colorClass="green"
-          note="Soma das OS finalizadas"
-        />
+        {isAdmin && (
+          <StatCard
+            icon={DollarSign}
+            label="Faturamento Total"
+            value={formatCurrency(stats.faturamento)}
+            colorClass="green"
+            note="Soma das OS finalizadas"
+          />
+        )}
       </div>
 
       {/* Detalhamento por status */}
@@ -179,8 +181,8 @@ function Dashboard({ ordens, loading }) {
         )}
       </div>
 
-      {/* Resumo de faturamento destacado */}
-      {stats.faturamento > 0 && (
+      {/* Resumo de faturamento — somente Administrador */}
+      {isAdmin && stats.faturamento > 0 && (
         <div className="glass-card" style={{
           padding: '24px',
           marginTop: '20px',

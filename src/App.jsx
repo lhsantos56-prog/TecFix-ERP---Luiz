@@ -92,7 +92,7 @@ function AppContent() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard ordens={ordens} loading={ordensLoading} />;
+        return <Dashboard ordens={ordens} loading={ordensLoading} isAdmin={isAdmin} />;
       case 'clientes':
         return (
           <Clientes

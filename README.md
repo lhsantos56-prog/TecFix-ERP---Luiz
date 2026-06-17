@@ -14,13 +14,17 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 
 ### Diferenciais Implementados
 - ✅ **Autenticação Completa** — Login com e-mail/senha via Supabase Auth; sessão persistida em `localStorage`
-- ✅ **Controle de Acesso por Perfil (RBAC)** — 3 tipos de usuário com permissões distintas
+- ✅ **Controle de Acesso por Perfil (RBAC)** — 3 tipos de usuário com permissões distintas e bloqueios por estado da OS
 - ✅ **Gestão de Usuários** — Administradores podem criar e gerenciar usuários diretamente pelo ERP
 - ✅ **Busca por Texto** — Filtra OS por nome do cliente ou descrição em tempo real
 - ✅ **Tipo de Equipamento** — Campo de categorização: Celular, Notebook, Televisão, Tablet, Desktop, Console, Áudio/Som, Outro
-- ✅ **Status do Conserto** — Pendente / Em Andamento / Finalizada / Cancelada (atualização inline por linha)
+- ✅ **Status do Conserto** — Pendente / Em Andamento / Finalizado / Cancelado (atualização inline por linha)
 - ✅ **Status de Aprovação** — Aguardando / Aprovado / Reprovado (atualização inline independente)
-- ✅ **Bloqueio de Aprovação** — Status de Aprovação bloqueado para Atendentes e Técnicos quando conserto está Finalizado, Cancelado ou aprovação já é Reprovado
+- ✅ **Bloqueio por Estado Terminal** — Conserto e botão Editar bloqueados para Atendente/Técnico quando OS está encerrada
+- ✅ **Auto-Cancelamento** — Ao marcar Aprovação como `Reprovado`, o status do conserto é automaticamente alterado para `Cancelado`
+- ✅ **Numeração Sequencial de OS** — Cada OS exibe um número estável no formato `OS-001`, `OS-002`... por ordem de chegada
+- ✅ **Ordenação por Chegada** — Ordens exibidas da mais antiga para a mais recente (ordem cronológica)
+- ✅ **Exportação em PDF** — Botão "Exportar" em cada OS gera um documento PDF com dados completos do cliente, descrição, valor e status
 - ✅ **Histórico de Descrição** — Texto original bloqueado (somente leitura); novas observações adicionadas com data/hora automática
 - ✅ **Valor Flexível** — Opcional na criação (salva como R$ 0,00); obrigatório ao editar
 - ✅ **Ordenação Alfabética** — Clientes e tipos de equipamento ordenados por nome (pt-BR)
@@ -36,25 +40,83 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 | Permissão | Atendente | Técnico | Administrador |
 |---|:---:|:---:|:---:|
 | Visualizar Dashboard | ✅ | ✅ | ✅ |
+| Visualizar Faturamento / Receita (Dashboard) | ❌ | ❌ | ✅ |
 | Visualizar Clientes | ✅ | ✅ | ✅ |
 | Criar Clientes | ✅ | ❌ | ✅ |
 | Visualizar OS | ✅ | ✅ | ✅ |
 | Criar OS | ✅ | ❌ | ✅ |
-| Editar OS (modal completo) | ❌ | ✅ | ✅ |
-| Alterar Status do Conserto | ❌ | ✅ | ✅ |
-| Alterar Status de Aprovação | ✅* | ❌ | ✅ |
+| Editar OS (modal completo) | ❌* | ✅* | ✅ |
+| Alterar Status do Conserto | ❌ | ✅* | ✅ |
+| Alterar Status de Aprovação | ✅* | ✅* | ✅ |
+| Exportar OS como PDF | ✅ | ✅ | ✅ |
 | Gerenciar Usuários | ❌ | ❌ | ✅ |
 
-> *Atendente pode alterar Status de Aprovação **somente** quando Status do Conserto for `Pendente` ou `Em Andamento` — e desde que a aprovação não seja `Reprovado`.
+> \* Sujeito às **regras de bloqueio por estado da OS** descritas abaixo.
 
-### Regras de Bloqueio da Aprovação
+---
 
-| Estado do Conserto / Aprovação | Atendente | Técnico | Administrador |
+## 🔒 Regras de Bloqueio por Estado da OS
+
+### Status de Aprovação
+
+| Condição | Atendente | Técnico | Administrador |
 |---|:---:|:---:|:---:|
-| Conserto `Pendente` ou `Em Andamento` | ✅ Editável | ❌ Sem acesso | ✅ Editável |
-| Conserto `Finalizada` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
-| Conserto `Cancelada` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
+| Conserto `Pendente` ou `Em Andamento` | ✅ Editável | ✅ Editável | ✅ Editável |
+| Conserto `Finalizado` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
+| Conserto `Cancelado` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
 | Aprovação já `Reprovado` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
+
+### Status do Conserto
+
+| Condição | Atendente | Técnico | Administrador |
+|---|:---:|:---:|:---:|
+| Conserto `Pendente` ou `Em Andamento` | ❌ Sem acesso | ✅ Editável | ✅ Editável |
+| Conserto `Finalizado` | ❌ Sem acesso | 🔒 Bloqueado | ✅ Editável |
+| Conserto `Cancelado` | ❌ Sem acesso | 🔒 Bloqueado | ✅ Editável |
+
+### Edição da OS (botão Editar)
+
+| Condição | Atendente | Técnico | Administrador |
+|---|:---:|:---:|:---:|
+| Aprovação `Reprovado` + Conserto `Cancelado` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
+| Aprovação `Aprovado` + Conserto `Finalizado` | 🔒 Bloqueado | 🔒 Bloqueado | ✅ Editável |
+| Demais estados | ❌ Sem acesso | ✅ Editável | ✅ Editável |
+
+### Regra de Auto-Cancelamento
+> Ao definir Aprovação como **Reprovado**, o sistema automaticamente altera o status do conserto para **Cancelado**, independente do perfil do usuário.
+
+---
+
+## 📄 Exportação de OS em PDF
+
+Cada linha da tabela de ordens de serviço possui um botão **"Exportar"** (ícone 📥). Ao clicar:
+
+1. Uma nova aba é aberta com um documento HTML formatado
+2. O diálogo de impressão do navegador é acionado automaticamente
+3. O usuário pode salvar como PDF
+
+**Conteúdo do documento exportado:**
+
+| Seção | Dados |
+|---|---|
+| Cabeçalho | Logo TecFix ERP + Número da OS (`OS-001`) + Data de emissão |
+| Dados do Cliente | Nome, E-mail, Telefone |
+| Equipamento | Tipo de equipamento |
+| Descrição / Histórico | Conteúdo completo do campo de descrição |
+| Financeiro | Valor do serviço formatado em BRL |
+| Status | Badges de Aprovação e Conserto |
+| Rodapé | Nº OS + data/hora da exportação |
+
+> ⚠️ O navegador precisa **permitir pop-ups** do localhost (ou do domínio onde o sistema está hospedado) para que a exportação funcione.
+
+---
+
+## 🔢 Numeração e Ordenação de OS
+
+- Cada OS recebe um número sequencial estável no formato **`OS-001`**, `OS-002`, `OS-003`...
+- A numeração é baseada na **ordem de chegada** (data de criação, `created_at ASC`)
+- O número permanece **estável mesmo com filtros ativos** — é calculado pela posição na lista completa, não na lista filtrada
+- A coluna **"Nº OS"** é a primeira exibida na tabela
 
 ---
 
@@ -144,15 +206,17 @@ src/
   hooks/
     useAuth.js              — Hook para consumir AuthContext
     useClientes.js          — CRUD de clientes (Supabase)
-    useOrdens.js            — CRUD de ordens de serviço (Supabase)
+    useOrdens.js            — CRUD de ordens de serviço (Supabase); ordenação por chegada (ASC)
     useUsuarios.js          — CRUD de usuários/perfis + criação via Admin API
     useToast.js             — Sistema de notificações
   pages/
     Login.jsx               — Tela de login (dark mode, show/hide senha)
     Dashboard.jsx           — Painel com métricas e resumo financeiro
     Clientes.jsx            — Gestão de clientes (guard: somente Atendente/Admin cria)
-    Ordens.jsx              — Gestão de OS (criação, edição, filtros, ações inline + bloqueios RBAC)
+    Ordens.jsx              — Gestão de OS (numeração, exportação, filtros, ações inline + bloqueios RBAC)
     Usuarios.jsx            — Gestão de usuários (somente Administrador)
+  utils/
+    exportarOS.js           — Utilitário de geração e exportação de OS em PDF (HTML/CSS puro)
   supabaseClient.js         — Cliente Supabase configurado (exporta URL e Anon Key)
   App.jsx                   — Auth gate, roteamento, permissões por role e layout principal
   index.css                 — Design system completo (variáveis, tokens, componentes)
@@ -215,9 +279,11 @@ src/
 | descricao | TEXT NOT NULL | Descrição do problema + histórico de observações |
 | tipo_equipamento | TEXT NOT NULL | Categoria: Celular, Notebook, Televisão, Tablet, Desktop, Console, Áudio/Som, Outro |
 | valor | NUMERIC(10,2) | Valor do serviço (default 0) |
-| status | TEXT NOT NULL | Status do conserto: `Pendente` / `Em Andamento` / `Finalizada` / `Cancelada` |
+| status | TEXT NOT NULL | Status do conserto: `Pendente` / `Em Andamento` / `Finalizada` / `Cancelada` ¹ |
 | status_aprovacao | TEXT NOT NULL | Status de aprovação: `Aguardando` / `Aprovado` / `Reprovado` |
-| created_at | TIMESTAMPTZ | Data de abertura da OS |
+| created_at | TIMESTAMPTZ | Data de abertura da OS (usada para numeração e ordenação) |
+
+> ¹ Os valores `Finalizada` e `Cancelada` são armazenados no banco conforme a constraint original. Na interface são exibidos como **Finalizado** e **Cancelado** (masculino) via mapeamento no frontend.
 
 ### Políticas RLS
 
@@ -250,11 +316,15 @@ O projeto utiliza um design system próprio em CSS puro (`index.css`) com:
 |---|---|
 | **Login** | Acesso via e-mail e senha; sessão mantida em `localStorage`; usuários inativos são bloqueados na tela de acesso desativado |
 | **Criar OS** | Valor é opcional (salva como R$ 0,00); status inicia como **Pendente**; aprovação inicia como **Aguardando** |
-| **Editar OS** | Valor é **obrigatório**; todos os campos são editáveis (apenas por Técnico ou Administrador) |
+| **Editar OS** | Valor é **obrigatório**; todos os campos são editáveis; Técnico e Admin podem editar — exceto quando OS está em estado terminal |
+| **Bloquear Edição** | Para Atendente e Técnico: botão Editar é desabilitado quando OS está encerrada (`Reprovado`+`Cancelado` ou `Aprovado`+`Finalizado`). Admin pode editar sempre |
+| **Auto-Cancelamento** | Ao definir Status de Aprovação como `Reprovado`, o status do conserto é automaticamente alterado para `Cancelado` |
 | **Descrição** | Texto original é bloqueado na edição; novas observações são adicionadas com timestamp automático em parágrafo separado |
 | **Tipo de equipamento** | Obrigatório na criação e edição |
-| **Ordenação** | Clientes e equipamentos exibidos em ordem alfabética (pt-BR) |
-| **Status Conserto** | Apenas Técnico e Administrador podem alterar |
-| **Status Aprovação** | Apenas Atendente e Administrador podem alterar; bloqueado para não-admins quando conserto está `Finalizada` ou `Cancelada`, ou quando aprovação já é `Reprovado` |
-| **Gestão de usuários** | Criação de novos usuários disponível apenas para Administrador; criação usa `supabase.auth.signUp` com cliente isolado para não deslogar o admin |
+| **Numeração de OS** | Cada OS recebe número sequencial estável (`OS-001`, `OS-002`...) baseado na ordem de chegada; número não muda com filtros |
+| **Ordenação** | OS exibidas por ordem de chegada (mais antigas primeiro); clientes e equipamentos em ordem alfabética (pt-BR) |
+| **Status Conserto** | Exibidos como `Finalizado`/`Cancelado` na UI; armazenados como `Finalizada`/`Cancelada` no banco. Apenas Técnico e Administrador alteram; Técnico bloqueado em estados terminais |
+| **Status Aprovação** | Atendente e Técnico podem alterar; bloqueado quando conserto está em estado terminal ou aprovação já é `Reprovado`; Admin pode alterar sempre |
+| **Exportação PDF** | Botão "Exportar" disponível para todos os perfis; gera documento com Nº OS, dados do cliente (nome, e-mail, telefone), equipamento, descrição completa, valor e status |
+| **Gestão de usuários** | Criação de novos usuários disponível apenas para Administrador; usa `supabase.auth.signUp` com cliente isolado para não deslogar o admin |
 | **Ativar/Desativar usuário** | Administrador pode ativar ou desativar o acesso de qualquer usuário via toggle na tabela de usuários |
