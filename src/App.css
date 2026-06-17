@@ -1,0 +1,8 @@
+/* App.css — estilos globais adicionais */
+
+/* Corrige animação de spin usada nos botões de loading */
+.spin-animation {
+  animation: spin 0.7s linear infinite;
+}
+
+/* Garante que o main.jsx importe o index.css antes de qualquer coisa */
