@@ -12,11 +12,24 @@ import {
   Cpu,
   Pencil,
   Lock,
+  FileDown,
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
+import { exportarOSPDF } from '../utils/exportarOS';
 
+// Valores que ficam no banco (satisfazem a CHECK constraint existente)
 const STATUS_CONSERTO_OPTIONS = ['Pendente', 'Em Andamento', 'Finalizada', 'Cancelada'];
 const STATUS_APROVACAO_OPTIONS = ['Aguardando', 'Aprovado', 'Reprovado'];
+
+// Labels de exibição: mapeiam valor do banco → nome exibido na UI
+const STATUS_CONSERTO_LABEL = {
+  'Pendente':     'Pendente',
+  'Em Andamento': 'Em Andamento',
+  'Finalizada':   'Finalizado',   // exibe masculino
+  'Cancelada':    'Cancelado',    // exibe masculino
+};
+
+// Chips de filtro: usam valores do banco mas label mapeada
 const FILTER_OPTIONS = ['Todos', ...STATUS_CONSERTO_OPTIONS];
 
 // Equipamentos em ordem alfabética (pt-BR)
@@ -57,14 +70,15 @@ function formatDate(dateStr) {
  */
 function StatusBadge({ status }) {
   const classMap = {
-    'Pendente': 'badge-pendente',
+    'Pendente':     'badge-pendente',
     'Em Andamento': 'badge-andamento',
-    'Finalizada': 'badge-finalizada',
-    'Cancelada': 'badge-cancelada',
+    'Finalizada':   'badge-finalizada',
+    'Cancelada':    'badge-cancelada',
   };
+  // Exibe label mapeada (Finalizado / Cancelado) mas usa classe pelo valor do banco
   return (
     <span className={`badge ${classMap[status] || ''}`}>
-      {status}
+      {STATUS_CONSERTO_LABEL[status] || status}
     </span>
   );
 }
@@ -278,6 +292,10 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
     setUpdatingAprovacaoId(id);
     try {
       await onAtualizarAprovacao(id, novoStatus);
+      // Ao reprovar: cancela automaticamente o conserto (usa valor DB 'Cancelada')
+      if (novoStatus === 'Reprovado') {
+        await onAtualizarStatus(id, 'Cancelada');
+      }
     } catch {
       // toast exibido no App
     } finally {
@@ -333,7 +351,7 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
               onClick={() => setStatusFilter(opt)}
               aria-pressed={statusFilter === opt}
             >
-              {opt}
+              {opt === 'Todos' ? 'Todos' : (STATUS_CONSERTO_LABEL[opt] || opt)}
             </button>
           ))}
         </div>
@@ -370,19 +388,39 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
           <table className="data-table" aria-label="Lista de ordens de serviço">
             <thead>
               <tr>
+                <th style={{ width: '72px', textAlign: 'center' }}>Nº OS</th>
                 <th>Equipamento</th>
                 <th>Cliente</th>
                 <th>Descrição</th>
                 <th>Valor</th>
-                <th>Status do Conserto</th>
                 <th>Status Aprovação</th>
+                <th>Status do Conserto</th>
                 <th>Data</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredOrdens.map(ordem => (
+              {filteredOrdens.map((ordem) => {
+                // Número estável: posição na lista completa (não filtrada), ordenada por chegada
+                const numero = ordens.findIndex(o => o.id === ordem.id) + 1;
+                return (
                 <tr key={ordem.id}>
+                  <td style={{ textAlign: 'center' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      background: 'rgba(0,212,255,0.10)',
+                      color: 'var(--color-accent)',
+                      fontWeight: 700,
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.04em',
+                      padding: '3px 7px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(0,212,255,0.18)',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      OS-{String(numero).padStart(3, '0')}
+                    </span>
+                  </td>
                   <td>
                     <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
                       {ordem.tipo_equipamento || '—'}
@@ -414,8 +452,8 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
                       {formatCurrency(ordem.valor)}
                     </span>
                   </td>
-                  <td><StatusBadge status={ordem.status} /></td>
                   <td><AprovacaoBadge status={ordem.status_aprovacao} /></td>
+                  <td><StatusBadge status={ordem.status} /></td>
                   <td>
                     <span style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
                       {formatDate(ordem.created_at)}
@@ -423,46 +461,20 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
                   </td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {/* Select Status do Conserto */}
-                      {canChangeConserto && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Conserto</span>
-                          {updatingId === ordem.id ? (
-                            <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-accent)' }} />
-                          ) : (
-                            <select
-                              id={`status-select-${ordem.id}`}
-                              className="status-select"
-                              value={ordem.status}
-                              onChange={e => handleStatusChange(ordem.id, e.target.value)}
-                              aria-label={`Alterar status do conserto da OS de ${ordem.clientes?.nome}`}
-                              disabled={updatingId !== null || updatingAprovacaoId !== null}
-                            >
-                              {STATUS_CONSERTO_OPTIONS.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      )}
 
-                      {/* Select Status Aprovação */}
-                      {canChangeAprovacao && (() => {
-                        // Bloqueia para não-admins quando conserto está finalizado/cancelado
-                        // ou quando aprovação já foi definida como Reprovado
+                      {/* ── 1º APROVAÇÃO ────────────────────────────── */}
+                      {canChangeAprovacao ? (() => {
                         const aprovacaoLocked = !isAdmin && (
                           ordem.status === 'Finalizada' ||
                           ordem.status === 'Cancelada' ||
                           ordem.status_aprovacao === 'Reprovado'
                         );
-
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Aprovação</span>
                             {updatingAprovacaoId === ordem.id ? (
                               <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-aguardando)' }} />
                             ) : aprovacaoLocked ? (
-                              /* Bloqueado — exibe badge + ícone de cadeado */
                               <div
                                 style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                                 title={`Aprovação bloqueada — Status do conserto: ${ordem.status}`}
@@ -486,30 +498,114 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
                             )}
                           </div>
                         );
-                      })()}
+                      })() : (
+                        /* Aprovação somente-leitura — aparece primeiro */
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Aprovação</span>
+                          <AprovacaoBadge status={ordem.status_aprovacao} />
+                        </div>
+                      )}
 
-                      {/* Exibe badge de conserto somente-leitura se não pode alterar */}
-                      {!canChangeConserto && <StatusBadge status={ordem.status} />}
-                      {!canChangeAprovacao && <AprovacaoBadge status={ordem.status_aprovacao} />}
+                      {/* ── 2º CONSERTO ─────────────────────────────── */}
+                      {canChangeConserto ? (() => {
+                        // Bloqueia para não-admins quando conserto já está em estado terminal
+                        const consertoLocked = !isAdmin && (
+                          ordem.status === 'Finalizada' ||
+                          ordem.status === 'Cancelada'
+                        );
+
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Conserto</span>
+                            {updatingId === ordem.id ? (
+                              <Loader2 size={14} className="spin-animation" style={{ color: 'var(--color-accent)' }} />
+                            ) : consertoLocked ? (
+                              /* Bloqueado — exibe badge + ícone de cadeado */
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                                title={`Status do conserto bloqueado — ${ordem.status} é um estado final`}
+                              >
+                                <StatusBadge status={ordem.status} />
+                                <Lock size={11} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                              </div>
+                            ) : (
+                              <select
+                                id={`status-select-${ordem.id}`}
+                                className="status-select"
+                                value={ordem.status}
+                                onChange={e => handleStatusChange(ordem.id, e.target.value)}
+                                aria-label={`Alterar status do conserto da OS de ${ordem.clientes?.nome}`}
+                                disabled={updatingId !== null || updatingAprovacaoId !== null}
+                              >
+                                {STATUS_CONSERTO_OPTIONS.map(s => (
+                                  <option key={s} value={s}>{STATUS_CONSERTO_LABEL[s] || s}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        );
+                      })() : (
+                        /* Conserto somente-leitura — aparece segundo */
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', width: '56px', flexShrink: 0 }}>Conserto</span>
+                          <StatusBadge status={ordem.status} />
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Botão Editar — somente quem pode editar OS */}
-                    {canEditOS && (
-                      <button
-                        id={`btn-editar-os-${ordem.id}`}
-                        className="btn btn-secondary btn-icon"
-                        onClick={() => openEdit(ordem)}
-                        title="Editar OS"
-                        aria-label={`Editar OS de ${ordem.clientes?.nome}`}
-                        disabled={updatingId !== null || updatingAprovacaoId !== null}
-                        style={{ marginTop: '6px' }}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    )}
+                    {canEditOS && (() => {
+                      // OS "encerrada": Reprovado+Cancelada  ou  Aprovado+Finalizada (valores do banco)
+                      const osEncerrada =
+                        (ordem.status_aprovacao === 'Reprovado' && ordem.status === 'Cancelada') ||
+                        (ordem.status_aprovacao === 'Aprovado'  && ordem.status === 'Finalizada');
+
+                      // Não-admins não podem editar OS encerrada
+                      const editLocked = !isAdmin && osEncerrada;
+
+                      return editLocked ? (
+                        <button
+                          id={`btn-editar-os-${ordem.id}`}
+                          className="btn btn-secondary btn-icon"
+                          disabled
+                          title={`OS encerrada — edição bloqueada (${ordem.status_aprovacao} / ${ordem.status})`}
+                          aria-label={`Edição bloqueada — OS de ${ordem.clientes?.nome} está encerrada`}
+                          style={{ marginTop: '6px', opacity: 0.4, cursor: 'not-allowed' }}
+                        >
+                          <Lock size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          id={`btn-editar-os-${ordem.id}`}
+                          className="btn btn-secondary btn-icon"
+                          onClick={() => openEdit(ordem)}
+                          title="Editar OS"
+                          aria-label={`Editar OS de ${ordem.clientes?.nome}`}
+                          disabled={updatingId !== null || updatingAprovacaoId !== null}
+                          style={{ marginTop: '6px' }}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      );
+                    })()}
+
+                    {/* Botão Exportar PDF — disponível para todos os perfis */}
+                    <button
+                      id={`btn-exportar-os-${ordem.id}`}
+                      className="btn btn-secondary"
+                      onClick={() => exportarOSPDF(ordem, numero)}
+                      title="Exportar OS como PDF"
+                      aria-label={`Exportar OS-${String(numero).padStart(3,'0')} de ${ordem.clientes?.nome} como PDF`}
+                      style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', padding: '5px 10px' }}
+                    >
+                      <FileDown size={13} />
+                      Exportar
+                    </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -824,7 +920,7 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
               className={`form-control ${editErrors.status ? 'error' : ''}`}
               value={editForm.status || ''} onChange={handleEditChange}
             >
-              {STATUS_CONSERTO_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {STATUS_CONSERTO_OPTIONS.map(s => <option key={s} value={s}>{STATUS_CONSERTO_LABEL[s] || s}</option>)}
             </select>
             {editErrors.status && (
               <span className="form-error"><AlertCircle size={12} />{editErrors.status}</span>

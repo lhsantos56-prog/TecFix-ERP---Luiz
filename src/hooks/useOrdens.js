@@ -23,7 +23,7 @@ export function useOrdens() {
       const { data, error: supaError } = await supabase
         .from('ordens_servico')
         .select(SELECT_FIELDS)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
 
       if (supaError) throw supaError;
       setOrdens(data || []);
@@ -51,7 +51,7 @@ export function useOrdens() {
       .single();
 
     if (supaError) throw supaError;
-    setOrdens(prev => [data, ...prev]);
+    setOrdens(prev => [...prev, data]);  // mantém ordem de chegada (mais recente no fim)
     return data;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -45,7 +45,7 @@ function Dashboard({ ordens, loading }) {
     const pendentes = ordens.filter(o => o.status === 'Pendente').length;
     const emAndamento = ordens.filter(o => o.status === 'Em Andamento').length;
     const finalizadas = ordens.filter(o => o.status === 'Finalizada').length;
-    const canceladas = ordens.filter(o => o.status === 'Cancelada').length;
+    const canceladas  = ordens.filter(o => o.status === 'Cancelada').length;
 
     const faturamento = ordens
       .filter(o => o.status === 'Finalizada')
@@ -136,8 +136,8 @@ function Dashboard({ ordens, loading }) {
           {[
             { label: 'Pendente', count: stats.pendentes, total: stats.total, color: 'var(--color-pendente)', bg: 'var(--color-pendente-bg)' },
             { label: 'Em Andamento', count: stats.emAndamento, total: stats.total, color: 'var(--color-andamento)', bg: 'var(--color-andamento-bg)' },
-            { label: 'Finalizada', count: stats.finalizadas, total: stats.total, color: 'var(--color-finalizada)', bg: 'var(--color-finalizada-bg)' },
-            { label: 'Cancelada', count: stats.canceladas, total: stats.total, color: 'var(--color-cancelada)', bg: 'var(--color-cancelada-bg)' },
+            { label: 'Finalizado', count: stats.finalizadas, total: stats.total, color: 'var(--color-finalizada)', bg: 'var(--color-finalizada-bg)' },
+            { label: 'Cancelado',  count: stats.canceladas,  total: stats.total, color: 'var(--color-cancelada)',  bg: 'var(--color-cancelada-bg)'  },
           ].map(({ label, count, total, color, bg }) => {
             const pct = total > 0 ? Math.round((count / total) * 100) : 0;
             return (

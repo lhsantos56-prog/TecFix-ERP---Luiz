@@ -28,12 +28,13 @@ function AppContent() {
   const { ordens, loading: ordensLoading, error: ordensError, fetchOrdens, criarOrdem, atualizarOrdem, atualizarStatus, atualizarAprovacao } = useOrdens();
 
   // Permissões por role
-  const canManageClientes = role === 'atendente' || role === 'administrador';
-  const canCreateOS = role === 'atendente' || role === 'administrador';
-  const canEditOS = role === 'tecnico' || role === 'administrador';
-  const canChangeConserto = role === 'tecnico' || role === 'administrador';
-  const canChangeAprovacao = role === 'atendente' || role === 'administrador';
-  const isAdmin = role === 'administrador';
+  const canManageClientes  = role === 'atendente' || role === 'administrador';
+  const canCreateOS        = role === 'atendente' || role === 'administrador';
+  const canEditOS          = role === 'tecnico'   || role === 'administrador';
+  const canChangeConserto  = role === 'tecnico'   || role === 'administrador';
+  // Todos os perfis podem alterar Aprovação; bloqueios por estado são aplicados no componente
+  const canChangeAprovacao = role === 'atendente' || role === 'tecnico' || role === 'administrador';
+  const isAdmin            = role === 'administrador';
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
