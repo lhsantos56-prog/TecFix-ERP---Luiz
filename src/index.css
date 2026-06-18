@@ -164,7 +164,10 @@ body::before {
   padding: 24px 20px;
   border-bottom: 1px solid var(--color-border);
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 12px;
 }
 
@@ -184,6 +187,7 @@ body::before {
 .sidebar-logo-text {
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .sidebar-logo-title {
@@ -248,9 +252,9 @@ body::before {
 }
 
 .nav-item:hover {
-  color: #c4b5fd;
-  background: rgba(124, 58, 237, 0.15);
-  border-color: rgba(124, 58, 237, 0.25);
+  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.25);
 }
 
 .nav-item:hover::before {
@@ -259,9 +263,9 @@ body::before {
 
 .nav-item.active {
   color: #ffffff;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  border-color: rgba(124, 58, 237, 0.5);
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+  background: linear-gradient(135deg, #10b981, #0ea5e9);
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
 }
 
 .nav-item.active::before {

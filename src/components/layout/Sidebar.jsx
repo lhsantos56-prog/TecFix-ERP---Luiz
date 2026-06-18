@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  LayoutDashboard, Users, ClipboardList, Wrench, X, LogOut, UserCog,
+  LayoutDashboard, Users, ClipboardList, X, LogOut, UserCog,
 } from 'lucide-react';
 
 const ROLE_LABEL = {
@@ -31,13 +31,30 @@ function Sidebar({ activePage, onNavigate, isOpen, onClose, isAdmin, nomeUsuario
       <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} aria-hidden="true" />
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`} role="navigation" aria-label="Menu principal">
-        {/* Logo */}
+        {/* Logo — Modelo 2: engrenagem circuit + TECFIX gradiente */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">🛠️</div>
+          {/* Ícone SVG — engrenagem circular com circuito */}
+          <img
+            src="/tecfix-logo.png"
+            alt="TecFix logo"
+            width="90"
+            height="90"
+            style={{ flexShrink: 0, objectFit: 'contain' }}
+          />
+
+          {/* Texto da logo */}
           <div className="sidebar-logo-text">
-            <span className="sidebar-logo-title">TecFix</span>
-            <span className="sidebar-logo-subtitle">ERP Sistema</span>
+            <span className="sidebar-logo-title" style={{
+              background: 'linear-gradient(135deg, #10b981, #0ea5e9)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontWeight: 900,
+              letterSpacing: '0.04em',
+            }}>TECFIX</span>
+            <span className="sidebar-logo-subtitle">Assistência Técnica</span>
           </div>
+
           <button className="btn btn-ghost btn-icon" onClick={onClose}
             aria-label="Fechar menu" style={{ marginLeft: 'auto', display: 'none' }} id="sidebar-close-btn">
             <X size={16} />
@@ -125,7 +142,7 @@ function Sidebar({ activePage, onNavigate, isOpen, onClose, isAdmin, nomeUsuario
           </button>
 
           <div style={{ marginTop: '10px', fontSize: '0.68rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-            <Wrench size={10} style={{ display: 'inline', marginRight: '4px' }} />
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             TecFix v1.1 — Assistência Técnica
           </div>
         </div>
