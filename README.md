@@ -20,12 +20,13 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 - ✅ **Tipo de Equipamento** — Campo de categorização: Celular, Notebook, Televisão, Tablet, Desktop, Console, Áudio/Som, Outro
 - ✅ **Status do Conserto** — Pendente / Em Andamento / Finalizado / Cancelado (atualização inline por linha)
 - ✅ **Status de Aprovação** — Aguardando / Aprovado / Reprovado (atualização inline independente)
+- ✅ **Técnico Responsável** — Campo na edição da OS que lista todos os técnicos ativos; bloqueado para Atendente/Técnico após atribuído; apenas Administrador pode alterar
 - ✅ **Bloqueio por Estado Terminal** — Conserto e botão Editar bloqueados para Atendente/Técnico quando OS está encerrada
 - ✅ **Auto-Cancelamento** — Ao marcar Aprovação como `Reprovado`, o status do conserto é automaticamente alterado para `Cancelado`
+- ✅ **Histórico de Descrição** — Texto original bloqueado (somente leitura); novas observações adicionadas com **nome do usuário + data e hora** automáticos
 - ✅ **Numeração Sequencial de OS** — Cada OS exibe um número estável no formato `OS-001`, `OS-002`... por ordem de chegada
 - ✅ **Ordenação por Chegada** — Ordens exibidas da mais antiga para a mais recente (ordem cronológica)
 - ✅ **Exportação em PDF** — Botão "Exportar" em cada OS gera um documento PDF com dados completos do cliente, descrição, valor e status
-- ✅ **Histórico de Descrição** — Texto original bloqueado (somente leitura); novas observações adicionadas com data/hora automática
 - ✅ **Valor Flexível** — Opcional na criação (salva como R$ 0,00); obrigatório ao editar
 - ✅ **Ordenação Alfabética** — Clientes e tipos de equipamento ordenados por nome (pt-BR)
 - ✅ **Modal de Edição Completa** — Edita todos os campos da OS (cliente, equipamento, descrição, valor, status do conserto e aprovação)

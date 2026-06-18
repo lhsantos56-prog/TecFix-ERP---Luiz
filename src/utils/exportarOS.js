@@ -18,8 +18,6 @@ export function exportarOSPDF(ordem, numero) {
   const equipamento   = ordem.tipo_equipamento || '—';
   const valor         = formatCurrency(ordem.valor);
   const dataCriacao   = formatDate(ordem.created_at);
-  const statusConserto = STATUS_LABEL[ordem.status] || ordem.status || '—';
-  const statusAprov    = ordem.status_aprovacao || '—';
 
   // ── Gera HTML do documento ────────────────────────────────────────────
   const html = `<!DOCTYPE html>
@@ -94,19 +92,6 @@ export function exportarOSPDF(ordem, numero) {
       color: #1a1a2e;
     }
 
-    /* ── Status badges ─── */
-    .badges { display: flex; gap: 12px; flex-wrap: wrap; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
-    }
-    .badge.aprovado   { background: #d0fae8; color: #007843; }
-    .badge.aguardando { background: #e8e8ff; color: #5552cc; }
-    .badge.reprovado  { background: #ffe4cc; color: #cc5500; }
-    .badge.pendente   { background: #ffe8cc; color: #b25000; }
-    .badge.andamento  { background: #ccecff; color: #004f99; }
-    .badge.finalizado { background: #d0fae8; color: #007843; }
-    .badge.cancelado  { background: #ffe0e0; color: #990000; }
 
     /* ── Rodapé ─── */
     .footer {
@@ -178,20 +163,13 @@ export function exportarOSPDF(ordem, numero) {
     <div class="descricao-box">${escapeHtml(descricao)}</div>
   </div>
 
-  <!-- Valor e Status -->
+  <!-- Valor do Serviço -->
   <div class="section">
-    <div class="section-title">Financeiro e Status</div>
+    <div class="section-title">Financeiro</div>
     <div class="fields-grid">
       <div class="field">
         <div class="field-label">Valor do Serviço</div>
         <div class="field-value big">${valor}</div>
-      </div>
-      <div class="field">
-        <div class="field-label">Status</div>
-        <div class="badges">
-          <span class="badge ${badgeClass(ordem.status_aprovacao, 'aprovacao')}">${statusAprov}</span>
-          <span class="badge ${badgeClass(ordem.status, 'conserto')}">${statusConserto}</span>
-        </div>
       </div>
     </div>
   </div>
@@ -227,21 +205,6 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/** Mapeia valor do banco para label exibida */
-const STATUS_LABEL = {
-  'Finalizada': 'Finalizado',
-  'Cancelada':  'Cancelado',
-};
-
-/** Retorna classe CSS do badge conforme o status */
-function badgeClass(status, tipo) {
-  if (tipo === 'aprovacao') {
-    const m = { 'Aprovado': 'aprovado', 'Aguardando': 'aguardando', 'Reprovado': 'reprovado' };
-    return m[status] || '';
-  }
-  const m = { 'Pendente': 'pendente', 'Em Andamento': 'andamento', 'Finalizada': 'finalizado', 'Cancelada': 'cancelado' };
-  return m[status] || '';
-}
 
 /** Escapa HTML para evitar XSS no conteúdo livre (descrição) */
 function escapeHtml(str) {

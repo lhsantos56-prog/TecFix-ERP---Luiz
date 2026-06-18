@@ -56,12 +56,24 @@ export function useOrdens() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const atualizarOrdem = useCallback(async (id, campos) => {
-    const { data, error: supaError } = await supabase
-      .from('ordens_servico')
-      .update(campos)
-      .eq('id', id)
-      .select(SELECT_FIELDS)
-      .single();
+    const tryUpdate = async (payload) => {
+      const { data, error: supaError } = await supabase
+        .from('ordens_servico')
+        .update(payload)
+        .eq('id', id)
+        .select(SELECT_FIELDS)
+        .single();
+      return { data, error: supaError };
+    };
+
+    let { data, error: supaError } = await tryUpdate(campos);
+
+    // Se o erro é que tecnico_id ainda não existe no banco (migração pendente),
+    // retenta sem o campo para não bloquear os demais salvamentos.
+    if (supaError && supaError.message?.includes('tecnico_id')) {
+      const { tecnico_id, ...camposSemTecnico } = campos; // eslint-disable-line no-unused-vars
+      ({ data, error: supaError } = await tryUpdate(camposSemTecnico));
+    }
 
     if (supaError) throw supaError;
     setOrdens(prev => prev.map(o => (o.id === id ? data : o)));

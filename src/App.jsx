@@ -12,6 +12,7 @@ import Usuarios from './pages/Usuarios';
 import Login from './pages/Login';
 import { useClientes } from './hooks/useClientes';
 import { useOrdens } from './hooks/useOrdens';
+import { useTecnicos } from './hooks/useTecnicos';
 import { useToast } from './hooks/useToast';
 
 /**
@@ -26,6 +27,7 @@ function AppContent() {
   const { toasts, toast, removeToast } = useToast();
   const { clientes, loading: clientesLoading, error: clientesError, fetchClientes, criarCliente } = useClientes();
   const { ordens, loading: ordensLoading, error: ordensError, fetchOrdens, criarOrdem, atualizarOrdem, atualizarStatus, atualizarAprovacao } = useOrdens();
+  const tecnicos = useTecnicos();
 
   // Permissões por role
   const canManageClientes  = role === 'atendente' || role === 'administrador';
@@ -110,6 +112,8 @@ function AppContent() {
             canCreateOS={canCreateOS} canEditOS={canEditOS}
             canChangeConserto={canChangeConserto} canChangeAprovacao={canChangeAprovacao}
             isAdmin={isAdmin}
+            tecnicos={tecnicos}
+            nomeUsuario={nomeUsuario}
           />
         );
       case 'usuarios':

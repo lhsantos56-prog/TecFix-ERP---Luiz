@@ -13,6 +13,7 @@ import {
   Pencil,
   Lock,
   FileDown,
+  Wrench,
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import { exportarOSPDF } from '../utils/exportarOS';
@@ -124,7 +125,6 @@ function validateEditarForm(fields) {
   const errors = {};
   if (!fields.cliente_id) errors.cliente_id = 'Selecione um cliente.';
   if (!fields.tipo_equipamento) errors.tipo_equipamento = 'Selecione o tipo de equipamento.';
-  if (!fields.status) errors.status = 'Selecione um status.';
   if (fields.valor === '' || fields.valor === undefined || fields.valor === null) {
     errors.valor = 'Informe o valor da OS.';
   } else {
@@ -144,7 +144,7 @@ const OBS_SEPARATOR = '\n\n— Observação';
  */
 function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtualizarStatus, onAtualizarAprovacao,
   canCreateOS = true, canEditOS = true, canChangeConserto = true, canChangeAprovacao = true,
-  isAdmin = false }) {
+  isAdmin = false, tecnicos = [], nomeUsuario = '' }) {
   // Estados do modal de criação
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM);
@@ -226,9 +226,10 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
       valor: ordem.valor != null ? String(ordem.valor) : '',
       status: ordem.status,
       status_aprovacao: ordem.status_aprovacao || 'Aguardando',
+      tecnico_id: ordem.tecnico_id || '',
       // Descrição original: somente leitura (bloqueada)
       descricao_locked: ordem.descricao,
-      // Nova observação: editável pelo técnico
+      // Nova observação: editável
       descricao_nova: '',
     });
     setEditErrors({});
@@ -246,22 +247,24 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
     if (Object.keys(errors).length > 0) { setEditErrors(errors); return; }
     setEditing(true);
     try {
-      // Monta descrição completa: original + nova observação (se houver)
+      // Monta descrição completa: original + nova observação com usuário + data/hora
       const novaObs = editForm.descricao_nova.trim();
       const dataAtual = new Date().toLocaleDateString('pt-BR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit',
       });
+      // Carimbo: nome do usuário + data/hora
+      const carimbo = nomeUsuario ? `${nomeUsuario} (${dataAtual})` : dataAtual;
       const descricaoFinal = editForm.descricao_locked +
-        (novaObs ? `${OBS_SEPARATOR} (${dataAtual}):\n${novaObs}` : '');
+        (novaObs ? `${OBS_SEPARATOR} ${carimbo}:\n${novaObs}` : '');
 
       await onAtualizar(editingOrdem.id, {
         cliente_id: editForm.cliente_id,
         descricao: descricaoFinal,
         tipo_equipamento: editForm.tipo_equipamento,
         valor: parseFloat(editForm.valor),
-        status: editForm.status,
-        status_aprovacao: editForm.status_aprovacao || 'Aguardando',
+        // status e status_aprovacao são gerenciados pelos controles inline da tabela
+        tecnico_id: editForm.tecnico_id || null,
       });
       setEditingOrdem(null);
     } catch (err) {
@@ -782,7 +785,50 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
             )}
           </div>
 
-          {/* Tipo de Equipamento — ordem alfabética */}
+          {/* Técnico Responsável — bloqueado após definido (exceto admin) */}
+          <div className="form-group">
+            <label htmlFor="edit-os-tecnico" className="form-label">
+              <Wrench size={12} style={{ display: 'inline', marginRight: '4px' }} />
+              Técnico Responsável
+            </label>
+            {editingOrdem?.tecnico_id && !isAdmin ? (
+              /* Já atribuído e usuário não é admin → campo bloqueado */
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 14px', borderRadius: '8px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--color-border)',
+              }}>
+                <Wrench size={13} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                <span style={{ flex: 1, color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                  {tecnicos.find(t => t.id === editingOrdem?.tecnico_id)?.nome || '—'}
+                </span>
+                <Lock size={12} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+                  title="Técnico bloqueado — apenas o Administrador pode alterar" />
+              </div>
+            ) : (
+              /* Não atribuído ainda, ou é admin → dropdown editável */
+              <select
+                id="edit-os-tecnico"
+                name="tecnico_id"
+                className="form-control"
+                value={editForm.tecnico_id || ''}
+                onChange={handleEditChange}
+              >
+                <option value="">Nenhum técnico atribuído</option>
+                {tecnicos.map(t => (
+                  <option key={t.id} value={t.id}>{t.nome}</option>
+                ))}
+              </select>
+            )}
+            {editingOrdem?.tecnico_id && !isAdmin && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '4px', display: 'block' }}>
+                Somente o Administrador pode alterar o técnico responsável após atribuído.
+              </span>
+            )}
+          </div>
+
+          {/* Tipo de Equipamento */}
           <div className="form-group">
             <label htmlFor="edit-os-equipamento" className="form-label">
               <Cpu size={12} style={{ display: 'inline', marginRight: '4px' }} />Tipo de Equipamento *
@@ -910,33 +956,6 @@ function Ordens({ ordens, clientes, loading, error, onCriar, onAtualizar, onAtua
             {editErrors.valor && (
               <span className="form-error"><AlertCircle size={12} />{editErrors.valor}</span>
             )}
-          </div>
-
-          {/* Status do Conserto */}
-          <div className="form-group">
-            <label htmlFor="edit-os-status" className="form-label">Status do Conserto *</label>
-            <select
-              id="edit-os-status" name="status"
-              className={`form-control ${editErrors.status ? 'error' : ''}`}
-              value={editForm.status || ''} onChange={handleEditChange}
-            >
-              {STATUS_CONSERTO_OPTIONS.map(s => <option key={s} value={s}>{STATUS_CONSERTO_LABEL[s] || s}</option>)}
-            </select>
-            {editErrors.status && (
-              <span className="form-error"><AlertCircle size={12} />{editErrors.status}</span>
-            )}
-          </div>
-
-          {/* Status Aprovação */}
-          <div className="form-group">
-            <label htmlFor="edit-os-aprovacao" className="form-label">Status Aprovação</label>
-            <select
-              id="edit-os-aprovacao" name="status_aprovacao"
-              className="form-control"
-              value={editForm.status_aprovacao || 'Aguardando'} onChange={handleEditChange}
-            >
-              {STATUS_APROVACAO_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
           </div>
         </form>
       </Modal>

@@ -1,19 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient';
-import { createClient } from '@supabase/supabase-js';
-
-/**
- * Cliente separado para signup de novos usuários.
- * Não persiste sessão, evitando deslogar o admin atual.
- */
-const supabaseSignup = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,
-    storageKey: 'sb-signup-temp',
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-  },
-});
+import { supabase, supabaseAdmin } from '../supabaseClient';
 
 const ROLES_LABEL = {
   atendente: 'Atendente',
@@ -46,26 +32,31 @@ export function useUsuarios() {
   }, []);
 
   /**
-   * Cria novo usuário via signUp público (Opção B).
-   * Usa cliente separado para não deslogar o admin.
+   * Cria novo usuário via Admin API.
+   * email_confirm: true → usuário já é criado confirmado, sem envio de e-mail.
+   * Requer supabaseAdmin (service_role key).
    */
   const criarUsuario = useCallback(async ({ email, password, nome, role }) => {
-    const { data, error: supaError } = await supabaseSignup.auth.signUp({
+    if (!supabaseAdmin) {
+      throw new Error('Admin client não configurado. Verifique VITE_SUPABASE_SERVICE_ROLE_KEY no .env');
+    }
+
+    const { data, error: supaError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { nome, role },
-      },
+      email_confirm: true,          // ← cria já confirmado, sem e-mail
+      user_metadata: { nome, role },
     });
 
     if (supaError) throw supaError;
     if (!data.user) throw new Error('Falha ao criar usuário.');
 
-    // Aguarda trigger criar o profile e busca novamente
+    // Aguarda o trigger de banco criar o perfil automaticamente
     await new Promise(r => setTimeout(r, 800));
     await fetchUsuarios();
     return data.user;
   }, [fetchUsuarios]);
+
 
   /** Atualiza nome, role ou ativo de um perfil */
   const atualizarPerfil = useCallback(async (id, campos) => {
