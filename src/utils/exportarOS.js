@@ -1,3 +1,5 @@
+import { formatCurrency, formatDate } from './format';
+
 /**
  * Exporta uma Ordem de Serviço como PDF via janela de impressão do browser.
  * Não requer dependências externas — usa HTML/CSS puro.
@@ -193,18 +195,6 @@ export function exportarOSPDF(ordem, numero) {
   win.document.write(html);
   win.document.close();
 }
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
 
 /** Escapa HTML para evitar XSS no conteúdo livre (descrição) */
 function escapeHtml(str) {

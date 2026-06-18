@@ -26,7 +26,6 @@ export function AuthProvider({ children }) {
         setProfile(null);
         return;
       }
-      console.log('[AuthContext] Perfil carregado:', data);
       setProfile(data);
     } catch (err) {
       console.error('[AuthContext] Exceção ao carregar perfil:', err);
@@ -64,7 +63,7 @@ export function AuthProvider({ children }) {
     profile,
     role: profile?.role ?? null,        // 'atendente' | 'tecnico' | 'administrador'
     nomeUsuario: profile?.nome ?? user?.email ?? '',
-    ativo: profile?.ativo ?? true,
+    ativo: profile?.ativo ?? null,  // null = perfil não carregado ainda; false = desativado pelo admin
     loading,
     signOut,
     reloadProfile: () => loadProfile(user?.id),

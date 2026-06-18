@@ -45,26 +45,7 @@ const EQUIPAMENTOS = [
   'Televisão',
 ];
 
-/**
- * Formata valor para moeda BRL
- */
-function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value || 0);
-}
-
-/**
- * Formata data para pt-BR
- */
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-  });
-}
+import { formatCurrency, formatDate } from '../utils/format';
 
 /**
  * Badge de status do conserto

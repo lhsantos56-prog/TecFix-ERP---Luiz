@@ -15,7 +15,7 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 ### Diferenciais Implementados
 - ✅ **Autenticação Completa** — Login com e-mail/senha via Supabase Auth; sessão persistida em `localStorage`
 - ✅ **Controle de Acesso por Perfil (RBAC)** — 3 tipos de usuário com permissões distintas e bloqueios por estado da OS
-- ✅ **Gestão de Usuários** — Administradores podem criar e gerenciar usuários diretamente pelo ERP
+- ✅ **Gestão de Usuários** — Administradores podem criar, visualizar, editar e ativar/desativar usuários pelo ERP
 - ✅ **Busca por Texto** — Filtra OS por nome do cliente ou descrição em tempo real
 - ✅ **Tipo de Equipamento** — Campo de categorização: Celular, Notebook, Televisão, Tablet, Desktop, Console, Áudio/Som, Outro
 - ✅ **Status do Conserto** — Pendente / Em Andamento / Finalizado / Cancelado (atualização inline por linha)
@@ -26,10 +26,9 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 - ✅ **Histórico de Descrição** — Texto original bloqueado (somente leitura); novas observações adicionadas com **nome do usuário + data e hora** automáticos
 - ✅ **Numeração Sequencial de OS** — Cada OS exibe um número estável no formato `OS-001`, `OS-002`... por ordem de chegada
 - ✅ **Ordenação por Chegada** — Ordens exibidas da mais antiga para a mais recente (ordem cronológica)
-- ✅ **Exportação em PDF** — Botão "Exportar" em cada OS gera um documento PDF com dados completos do cliente, descrição, valor e status
+- ✅ **Exportação em PDF** — Botão "Exportar" em cada OS gera um documento PDF com dados completos do cliente, descrição e valor
 - ✅ **Valor Flexível** — Opcional na criação (salva como R$ 0,00); obrigatório ao editar
 - ✅ **Ordenação Alfabética** — Clientes e tipos de equipamento ordenados por nome (pt-BR)
-- ✅ **Modal de Edição Completa** — Edita todos os campos da OS (cliente, equipamento, descrição, valor, status do conserto e aprovação)
 - ✅ **Row Level Security (RLS)** — Políticas de segurança no Supabase com função `SECURITY DEFINER` para evitar recursão
 - ✅ **UI/UX Premium** — Dark mode, glassmorphism, micro-animações, toasts de feedback
 - ✅ **Responsividade** — Sidebar colapsável em mobile com menu hamburger
@@ -51,6 +50,9 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 | Alterar Status de Aprovação | ✅* | ✅* | ✅ |
 | Exportar OS como PDF | ✅ | ✅ | ✅ |
 | Gerenciar Usuários | ❌ | ❌ | ✅ |
+| Visualizar detalhes de usuário | ❌ | ❌ | ✅ |
+| Editar usuário (nome, perfil, senha) | ❌ | ❌ | ✅ |
+| Ativar / Desativar usuário | ❌ | ❌ | ✅ |
 
 > \* Sujeito às **regras de bloqueio por estado da OS** descritas abaixo.
 
@@ -88,6 +90,25 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 
 ---
 
+## 👤 Gestão de Usuários
+
+Disponível exclusivamente para o perfil **Administrador**. A tela exibe uma tabela com todos os usuários e 3 botões de ação por linha:
+
+| Ação | Descrição |
+|---|---|
+| **Visualizar** | Abre modal com nome, perfil (badge), situação, e-mail, datas de cadastro e atualização |
+| **Editar** | Abre modal para alterar nome, perfil de acesso e senha (opcional); e-mail é somente leitura |
+| **Ativar / Desativar** | Toggle de acesso imediato; usuários inativos são barrados no login |
+
+> O perfil de acesso é exibido na tabela como um **badge colorido** (sem select inline). A edição do perfil é feita exclusivamente pelo modal de edição.
+
+### Criação de Usuários (sem e-mail de confirmação)
+A criação utiliza a **Supabase Admin API** (`email_confirm: true`), garantindo acesso imediato sem necessidade de confirmar e-mail. A implementação usa uma estratégia com fallback gracioso:
+1. Tenta invocar a **Edge Function** `create-user` (server-side — chave nunca exposta ao cliente)
+2. Se a Edge Function não estiver disponível (404), usa o cliente admin com `service_role key` como fallback
+
+---
+
 ## 📄 Exportação de OS em PDF
 
 Cada linha da tabela de ordens de serviço possui um botão **"Exportar"** (ícone 📥). Ao clicar:
@@ -105,10 +126,11 @@ Cada linha da tabela de ordens de serviço possui um botão **"Exportar"** (íco
 | Equipamento | Tipo de equipamento |
 | Descrição / Histórico | Conteúdo completo do campo de descrição |
 | Financeiro | Valor do serviço formatado em BRL |
-| Status | Badges de Aprovação e Conserto |
 | Rodapé | Nº OS + data/hora da exportação |
 
 > ⚠️ O navegador precisa **permitir pop-ups** do localhost (ou do domínio onde o sistema está hospedado) para que a exportação funcione.
+
+> ℹ️ Os campos de Status de Aprovação e Status do Conserto foram **removidos do PDF** — o controle de status é feito exclusivamente pela interface.
 
 ---
 
@@ -178,9 +200,24 @@ Conteúdo do `.env`:
 ```
 VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
 VITE_SUPABASE_ANON_KEY=sua_anon_key_aqui
+
+# Necessária como fallback até o deploy da Edge Function 'create-user'.
+# Remova após confirmar que a Edge Function está ativa.
+VITE_SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key_aqui
 ```
 
-### 4. Instale e rode
+> ⚠️ **Produção:** A `service_role key` não deve ficar no bundle cliente. Deploy a Edge Function `supabase/functions/create-user/index.ts` e remova a variável do `.env`.
+
+### 4. (Opcional) Deploy da Edge Function
+
+```bash
+npx supabase login
+npx supabase functions deploy create-user --project-ref SEU_PROJECT_REF
+```
+
+Após o deploy, remova `VITE_SUPABASE_SERVICE_ROLE_KEY` do `.env` — o app usa a Edge Function automaticamente.
+
+### 5. Instale e rode
 
 ```bash
 npm install
@@ -208,19 +245,26 @@ src/
     useAuth.js              — Hook para consumir AuthContext
     useClientes.js          — CRUD de clientes (Supabase)
     useOrdens.js            — CRUD de ordens de serviço (Supabase); ordenação por chegada (ASC)
-    useUsuarios.js          — CRUD de usuários/perfis + criação via Admin API
+    useUsuarios.js          — CRUD de usuários/perfis + criação/edição via Admin API / Edge Function
+    useTecnicos.js          — Lista técnicos ativos (com loading/error state)
     useToast.js             — Sistema de notificações
   pages/
     Login.jsx               — Tela de login (dark mode, show/hide senha)
-    Dashboard.jsx           — Painel com métricas e resumo financeiro
+    Dashboard.jsx           — Painel com métricas e resumo financeiro (financeiro só para Admin)
     Clientes.jsx            — Gestão de clientes (guard: somente Atendente/Admin cria)
     Ordens.jsx              — Gestão de OS (numeração, exportação, filtros, ações inline + bloqueios RBAC)
-    Usuarios.jsx            — Gestão de usuários (somente Administrador)
+    Usuarios.jsx            — Gestão de usuários (somente Admin): listagem, visualizar, editar, ativar/desativar
   utils/
     exportarOS.js           — Utilitário de geração e exportação de OS em PDF (HTML/CSS puro)
-  supabaseClient.js         — Cliente Supabase configurado (exporta URL e Anon Key)
+    format.js               — Funções compartilhadas: formatCurrency, formatDate
+  supabaseClient.js         — Cliente Supabase configurado (exporta supabase e constantes)
   App.jsx                   — Auth gate, roteamento, permissões por role e layout principal
   index.css                 — Design system completo (variáveis, tokens, componentes)
+
+supabase/
+  functions/
+    create-user/
+      index.ts              — Edge Function para criação segura de usuários (server-side)
 ```
 
 ---
@@ -258,8 +302,11 @@ src/
 | role | TEXT NOT NULL | Perfil: `atendente` / `tecnico` / `administrador` |
 | ativo | BOOLEAN | Define se o usuário tem acesso ao sistema |
 | created_at | TIMESTAMPTZ | Data de criação |
+| updated_at | TIMESTAMPTZ | Data da última atualização |
 
 > **Trigger:** `on_auth_user_created` — criado automaticamente ao inserir em `auth.users` com `SECURITY DEFINER`, populando `nome` e `role` dos metadados.
+
+> **E-mail:** O campo de e-mail é lido dinamicamente de `auth.users` via Admin API e mesclado ao perfil em tempo de execução (não armazenado em `profiles`).
 
 ### Tabela `clientes`
 
@@ -277,6 +324,7 @@ src/
 |---|---|---|
 | id | UUID (PK) | Identificador único |
 | cliente_id | UUID (FK → clientes) | Cliente responsável |
+| tecnico_id | UUID (FK → profiles) | Técnico responsável (nullable) |
 | descricao | TEXT NOT NULL | Descrição do problema + histórico de observações |
 | tipo_equipamento | TEXT NOT NULL | Categoria: Celular, Notebook, Televisão, Tablet, Desktop, Console, Áudio/Som, Outro |
 | valor | NUMERIC(10,2) | Valor do serviço (default 0) |
@@ -320,12 +368,51 @@ O projeto utiliza um design system próprio em CSS puro (`index.css`) com:
 | **Editar OS** | Valor é **obrigatório**; todos os campos são editáveis; Técnico e Admin podem editar — exceto quando OS está em estado terminal |
 | **Bloquear Edição** | Para Atendente e Técnico: botão Editar é desabilitado quando OS está encerrada (`Reprovado`+`Cancelado` ou `Aprovado`+`Finalizado`). Admin pode editar sempre |
 | **Auto-Cancelamento** | Ao definir Status de Aprovação como `Reprovado`, o status do conserto é automaticamente alterado para `Cancelado` |
-| **Descrição** | Texto original é bloqueado na edição; novas observações são adicionadas com timestamp automático em parágrafo separado |
+| **Descrição** | Texto original é bloqueado na edição; novas observações são adicionadas com nome do usuário + data/hora em parágrafo separado |
 | **Tipo de equipamento** | Obrigatório na criação e edição |
 | **Numeração de OS** | Cada OS recebe número sequencial estável (`OS-001`, `OS-002`...) baseado na ordem de chegada; número não muda com filtros |
 | **Ordenação** | OS exibidas por ordem de chegada (mais antigas primeiro); clientes e equipamentos em ordem alfabética (pt-BR) |
-| **Status Conserto** | Exibidos como `Finalizado`/`Cancelado` na UI; armazenados como `Finalizada`/`Cancelada` no banco. Apenas Técnico e Administrador alteram; Técnico bloqueado em estados terminais |
-| **Status Aprovação** | Atendente e Técnico podem alterar; bloqueado quando conserto está em estado terminal ou aprovação já é `Reprovado`; Admin pode alterar sempre |
-| **Exportação PDF** | Botão "Exportar" disponível para todos os perfis; gera documento com Nº OS, dados do cliente (nome, e-mail, telefone), equipamento, descrição completa, valor e status |
-| **Gestão de usuários** | Criação de novos usuários disponível apenas para Administrador; usa `supabase.auth.signUp` com cliente isolado para não deslogar o admin |
-| **Ativar/Desativar usuário** | Administrador pode ativar ou desativar o acesso de qualquer usuário via toggle na tabela de usuários |
+| **Status Conserto** | Exibidos como `Finalizado`/`Cancelado` na UI; armazenados como `Finalizada`/`Cancelada` no banco. Apenas Técnico e Administrador alteram |
+| **Status Aprovação** | Atendente e Técnico podem alterar; bloqueado quando conserto está em estado terminal; Admin pode alterar sempre |
+| **PDF** | Botão "Exportar" para todos os perfis; gera documento com Nº OS, cliente (nome, e-mail, tel.), equipamento, descrição e valor. Status removidos do PDF |
+| **Criar usuário** | Disponível apenas para Admin; acesso imediato (sem confirmação de e-mail); usa Edge Function server-side com fallback para Admin API |
+| **Editar usuário** | Admin pode alterar nome, perfil e senha; e-mail é somente leitura |
+| **Ativar/Desativar** | Admin pode ativar ou desativar qualquer usuário; usuários inativos são barrados ao fazer login |
+| **Técnico Responsável** | Definido na edição da OS; bloqueado para Atendente e Técnico após atribuído; somente Admin pode reatribuir |
+
+---
+
+## 🔐 Segurança
+
+| Item | Status | Detalhes |
+|---|---|---|
+| Row Level Security (RLS) | ✅ Ativo | Todas as tabelas públicas têm políticas RLS configuradas |
+| `service_role key` no cliente | ⚠️ Transição | Usada como fallback; remover após deploy da Edge Function |
+| Edge Function `create-user` | 🚧 Pendente deploy | Código pronto em `supabase/functions/create-user/index.ts` |
+| Logs de dados de usuário | ✅ Removidos | `console.log` com dados de perfil eliminado do `AuthContext` |
+| Default `ativo` inseguro | ✅ Corrigido | `ativo ?? null` (antes `?? true`) — falha no carregamento não concede acesso |
+| Funções utilitárias duplicadas | ✅ Corrigido | `formatCurrency` e `formatDate` centralizadas em `utils/format.js` |
+| `SELECT_FIELDS` em hook | ✅ Otimizado | Movida para escopo de módulo (não recriada a cada render) |
+| `filteredClientes` sem memo | ✅ Otimizado | Protegida com `useMemo` |
+
+---
+
+## 📅 Histórico de Alterações
+
+### 2026-06-18
+- **Segurança:** Removido `console.log` que expunha dados de perfil no DevTools
+- **Segurança:** Corrigido default inseguro `ativo ?? true` → `ativo ?? null`
+- **Segurança:** Adicionado `storageKey` distinto ao cliente admin para evitar conflito de sessão GoTrueClient
+- **Segurança:** Criada Edge Function `create-user` (server-side) para remover `service_role key` do bundle cliente
+- **Otimização:** `SELECT_FIELDS` movido para escopo de módulo em `useOrdens.js`
+- **Otimização:** `filteredClientes` protegido com `useMemo` em `Clientes.jsx`
+- **Otimização:** Criado `src/utils/format.js` com `formatCurrency` e `formatDate` centralizadas (eliminadas duplicatas em Ordens, Dashboard e exportarOS)
+- **Otimização:** `useTecnicos` refatorado com estado `loading` e `error`
+- **Usuários — Tabela:** Perfil de acesso exibido como badge colorido (removido select inline)
+- **Usuários — Visualizar:** Novo modal de detalhes com nome, perfil, situação, e-mail real, datas de cadastro/atualização
+- **Usuários — Editar:** Novo modal de edição com nome, e-mail (somente leitura), nova senha (opcional) e perfil de acesso
+- **Usuários — E-mail:** `fetchUsuarios` agora mescla e-mails de `auth.users` para exibição nos modais
+- **Usuários — `editarUsuario`:** Nova função no hook para atualizar nome, role e senha via Admin API
+
+### Versões anteriores
+Consulte o histórico de commits Git para alterações anteriores a 2026-06-18.

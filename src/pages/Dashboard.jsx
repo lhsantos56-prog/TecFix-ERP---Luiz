@@ -9,16 +9,7 @@ import {
   TrendingUp,
   Activity
 } from 'lucide-react';
-
-/**
- * Formata valor para moeda BRL
- */
-function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value || 0);
-}
+import { formatCurrency } from '../utils/format';
 
 /**
  * Card de estatística individual

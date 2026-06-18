@@ -7,18 +7,27 @@ import { supabase } from '../supabaseClient';
  */
 export function useTecnicos() {
   const [tecnicos, setTecnicos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    setLoading(true);
     supabase
       .from('profiles')
       .select('id, nome')
       .eq('role', 'tecnico')
       .eq('ativo', true)
       .order('nome', { ascending: true })
-      .then(({ data, error }) => {
-        if (!error) setTecnicos(data || []);
+      .then(({ data, error: supaError }) => {
+        if (supaError) {
+          console.error('[useTecnicos] Erro ao carregar técnicos:', supaError.message);
+          setError(supaError.message);
+        } else {
+          setTecnicos(data || []);
+        }
+        setLoading(false);
       });
   }, []);
 
-  return tecnicos;
+  return { tecnicos, loading, error };
 }

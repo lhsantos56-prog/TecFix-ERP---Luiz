@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { UserPlus, Mail, Phone, User, Search, Loader2, AlertCircle, Users } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 
@@ -39,9 +39,12 @@ function Clientes({ clientes, loading, error, onCriar, canManage = true }) {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
-  const filteredClientes = clientes.filter(c =>
-    c.nome.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
+  const filteredClientes = useMemo(
+    () => clientes.filter(c =>
+      c.nome.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase())
+    ),
+    [clientes, search]
   );
 
   const handleChange = (e) => {

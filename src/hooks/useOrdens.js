@@ -4,17 +4,19 @@ import { supabase } from '../supabaseClient';
 /**
  * Hook para gerenciar operações CRUD de ordens de serviço
  */
+
+// Definido fora do hook para não recriar a string a cada render
+const SELECT_FIELDS = `
+  *,
+  tipo_equipamento,
+  status_aprovacao,
+  clientes ( id, nome, email, telefone )
+`;
+
 export function useOrdens() {
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const SELECT_FIELDS = `
-    *,
-    tipo_equipamento,
-    status_aprovacao,
-    clientes ( id, nome, email, telefone )
-  `;
 
   const fetchOrdens = useCallback(async () => {
     setLoading(true);

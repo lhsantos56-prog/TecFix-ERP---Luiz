@@ -27,7 +27,7 @@ function AppContent() {
   const { toasts, toast, removeToast } = useToast();
   const { clientes, loading: clientesLoading, error: clientesError, fetchClientes, criarCliente } = useClientes();
   const { ordens, loading: ordensLoading, error: ordensError, fetchOrdens, criarOrdem, atualizarOrdem, atualizarStatus, atualizarAprovacao } = useOrdens();
-  const tecnicos = useTecnicos();
+  const { tecnicos } = useTecnicos();
 
   // Permissões por role
   const canManageClientes  = role === 'atendente' || role === 'administrador';
