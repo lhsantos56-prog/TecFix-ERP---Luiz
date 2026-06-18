@@ -235,6 +235,7 @@ body::before {
   text-decoration: none;
   position: relative;
   overflow: hidden;
+  background: transparent;
 }
 
 .nav-item::before {
@@ -247,22 +248,24 @@ body::before {
 }
 
 .nav-item:hover {
-  color: var(--color-text-primary);
-  background: var(--color-bg-card);
+  color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.25);
 }
 
 .nav-item:hover::before {
-  opacity: 0.5;
+  opacity: 0;
 }
 
 .nav-item.active {
-  color: var(--color-accent);
-  background: var(--color-accent-dim);
-  border-color: var(--color-accent-glow);
+  color: #ffffff;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
 }
 
 .nav-item.active::before {
-  opacity: 1;
+  opacity: 0;
 }
 
 .nav-item-icon {
