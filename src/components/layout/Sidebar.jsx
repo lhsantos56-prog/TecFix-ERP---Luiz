@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  LayoutDashboard, Users, ClipboardList, X, LogOut, UserCog,
+  LayoutDashboard, Users, ClipboardList, X, LogOut, UserCog, Banknote,
 } from 'lucide-react';
 
 const ROLE_LABEL = {
@@ -25,6 +25,8 @@ const NAV_ITEMS = [
  * Sidebar de navegação lateral
  */
 function Sidebar({ activePage, onNavigate, isOpen, onClose, isAdmin, nomeUsuario, role, onSignOut }) {
+  const canAccessCaixa = role === 'atendente' || role === 'administrador';
+
   return (
     <>
       {/* Overlay mobile */}
@@ -77,6 +79,19 @@ function Sidebar({ activePage, onNavigate, isOpen, onClose, isAdmin, nomeUsuario
               <span>{label}</span>
             </button>
           ))}
+
+          {/* Menu de Caixa */}
+          {canAccessCaixa && (
+            <button
+              id="nav-caixa"
+              className={`nav-item ${activePage === 'caixa' ? 'active' : ''}`}
+              onClick={() => { onNavigate('caixa'); onClose(); }}
+              aria-current={activePage === 'caixa' ? 'page' : undefined}
+            >
+              <Banknote className="nav-item-icon" size={18} />
+              <span>Caixa</span>
+            </button>
+          )}
 
           {/* Usuários — somente administrador */}
           {isAdmin && (

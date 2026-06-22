@@ -31,6 +31,7 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 - ✅ **Ordenação Alfabética** — Clientes e tipos de equipamento ordenados por nome (pt-BR)
 - ✅ **Row Level Security (RLS)** — Políticas de segurança no Supabase com função `SECURITY DEFINER` para evitar recursão
 - ✅ **UI/UX Premium** — Dark mode, glassmorphism, micro-animações, toasts de feedback
+- **Módulo Financeiro (Caixa)** — Página exclusiva para gestão de Contas a Receber (OS aprovadas e finalizadas), com filtros de pagamento (Pendente/Pago) e registro da forma de pagamento (Dinheiro, PIX, Crédito, Débito).
 - ✅ **Responsividade** — Sidebar colapsável em mobile com menu hamburger
 
 ---
@@ -53,6 +54,7 @@ Mini ERP desenvolvido com **React + Vite + Supabase** para gestão de clientes e
 | Visualizar detalhes de usuário | ❌ | ❌ | ✅ |
 | Editar usuário (nome, perfil, senha) | ❌ | ❌ | ✅ |
 | Ativar / Desativar usuário | ❌ | ❌ | ✅ |
+| Visualizar Caixa / Gerir Recebimentos | ✅ | ❌ | ✅ |
 
 > \* Sujeito às **regras de bloqueio por estado da OS** descritas abaixo.
 

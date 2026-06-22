@@ -6,6 +6,7 @@ const PAGE_INFO = {
   clientes: { title: 'Gestão de Clientes', subtitle: 'Cadastre e gerencie seus clientes' },
   ordens: { title: 'Ordens de Serviço', subtitle: 'Acompanhe e gerencie as OS em andamento' },
   usuarios: { title: 'Usuários', subtitle: 'Gerencie os acessos ao sistema' },
+  caixa: { title: 'Caixa', subtitle: 'Gestão de Contas a Receber' },
 };
 
 const ROLE_LABEL = {

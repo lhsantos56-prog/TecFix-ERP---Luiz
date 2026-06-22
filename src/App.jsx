@@ -10,6 +10,7 @@ import Clientes from './pages/Clientes';
 import Ordens from './pages/Ordens';
 import Usuarios from './pages/Usuarios';
 import Login from './pages/Login';
+import Caixa from './pages/Caixa';
 import { useClientes } from './hooks/useClientes';
 import { useOrdens } from './hooks/useOrdens';
 import { useTecnicos } from './hooks/useTecnicos';
@@ -26,7 +27,7 @@ function AppContent() {
 
   const { toasts, toast, removeToast } = useToast();
   const { clientes, loading: clientesLoading, error: clientesError, fetchClientes, criarCliente } = useClientes();
-  const { ordens, loading: ordensLoading, error: ordensError, fetchOrdens, criarOrdem, atualizarOrdem, atualizarStatus, atualizarAprovacao } = useOrdens();
+  const { ordens, loading: ordensLoading, error: ordensError, fetchOrdens, criarOrdem, atualizarOrdem, atualizarStatus, atualizarAprovacao, baixarPagamento } = useOrdens();
   const { tecnicos } = useTecnicos();
 
   // Permissões por role
@@ -37,6 +38,7 @@ function AppContent() {
   // Todos os perfis podem alterar Aprovação; bloqueios por estado são aplicados no componente
   const canChangeAprovacao = role === 'atendente' || role === 'tecnico' || role === 'administrador';
   const isAdmin            = role === 'administrador';
+  const canAccessCaixa     = role === 'atendente' || role === 'administrador';
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -118,6 +120,14 @@ function AppContent() {
         );
       case 'usuarios':
         return isAdmin ? <Usuarios /> : null;
+      case 'caixa':
+        return canAccessCaixa ? (
+          <Caixa 
+            ordens={ordens} 
+            loading={ordensLoading} 
+            onBaixarPagamento={baixarPagamento}
+          />
+        ) : null;
       default:
         return null;
     }

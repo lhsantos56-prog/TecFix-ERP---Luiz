@@ -10,6 +10,8 @@ const SELECT_FIELDS = `
   *,
   tipo_equipamento,
   status_aprovacao,
+  status_pagamento,
+  forma_pagamento,
   clientes ( id, nome, email, telefone )
 `;
 
@@ -108,6 +110,22 @@ export function useOrdens() {
     return data;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const baixarPagamento = useCallback(async (id, formaPagamento) => {
+    const { data, error: supaError } = await supabase
+      .from('ordens_servico')
+      .update({ 
+        status_pagamento: 'Pago',
+        forma_pagamento: formaPagamento
+      })
+      .eq('id', id)
+      .select(SELECT_FIELDS)
+      .single();
+
+    if (supaError) throw supaError;
+    setOrdens(prev => prev.map(o => (o.id === id ? data : o)));
+    return data;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const deletarOrdem = useCallback(async (id) => {
     const { error: supaError } = await supabase
       .from('ordens_servico')
@@ -127,6 +145,7 @@ export function useOrdens() {
     atualizarOrdem,
     atualizarStatus,
     atualizarAprovacao,
+    baixarPagamento,
     deletarOrdem,
   };
 }
